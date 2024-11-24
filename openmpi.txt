@@ -1,0 +1,141 @@
+omp
+1.sudo apt-get update
+2.sudo apt-get install clang
+3.touch filename.c
+4.gedit filename.c
+execution---
+5.gcc -fopenmp -o filenameoutput filename.c
+6.   ./filenameoutput
+
+1.
+#include <omp.h> //<-- necessary header file for OpenMP API
+#include <stdio.h>
+int main(int argc, char *argv[]){
+printf("OpenMP running with %d threads\n", omp_get_max_threads());
+#pragma omp parallel
+{
+//Code here will be executed by all threads
+printf("Hello World from thread %d\n", omp_get_thread_num());
+}
+return 0;
+}
+
+2.#include <omp.h>
+#include <stdio.h>
+int main() {
+int i;
+int N = 1000;
+int a = 50;
+int b = 0;
+#pragma omp parallel for default(none) private(i) shared(N) private(a) private(b)
+for (i=0; i<N; i++) {
+b = a + i;
+}
+printf("a=%d b=%d (expected a=50 b=1049)\n", a, b);
+}
+
+3.#include <omp.h>
+#include <stdio.h>
+int main() {
+int i;
+const int N = 1000;
+int sum = 0;
+#pragma omp parallel for private(i) reduction(+: sum)
+for (i=0; i<N; i++) {
+sum += i;
+}
+printf("reduction sum=%d (expected %d)\n", sum, ((N-1)*N)/2);
+}
+
+4.sum of n numbers
+#include <stdio.h>
+
+#include<stdio.h>
+
+#include<omp.h>
+int main(int argc,char ** argv){
+   int i,j,n=10,sum = 0;
+   int arr[10]={1,2,3,4,5,6,7,8,9};
+   #pragma omp parallel for private(i) reduction(+:sum)
+   for(i =0;i<n;i++){
+       sum += arr[i];
+   }
+   printf("Sum of array elements by each thread is: %d\n",sum);
+    return 0;
+}
+
+first private
+#include<stdio.h>
+#include<omp.h>
+int main(){
+int i,x=23,thread_num;
+ 
+   #pragma omp parallel for firstprivate(x) private(i)
+   for(i=0;i<10;i++){
+       thread_num = omp_get_thread_num();
+       printf("Thread %d starts with x=%d \n",thread_num,x);
+       x = x+ i;
+   }
+
+    printf("%d  \n",x);
+    return 0;
+}
+
+
+--------------
+mpi
+
+sudo apt-get install libopenmpi-dev
+sudo apt-get install openmpi-bin
+sudo apt-get update
+sudo apt-get upgrade
+1.
+#include<stdio.h>
+#include "mpi.h"
+#include <omp.h>
+int main(int argc,char ** argv){
+int rank,size;//rank-proceessid,size:total processes
+MPI_Init(NULL,NULL);
+MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+MPI_Comm_size(MPI_COMM_WORLD,&size);
+//processor name,rank=proc.id,size=no of process
+char processor_name[MPI_MAX_PROCESSOR_NAME];
+int processor_name_len;
+MPI_Get_processor_name(processor_name,&processor_name_len);
+printf("Hello MPI: the process id(rank) %d for toal processes size %d and name of processor is %s \n",rank,size,processor_name);
+
+MPI_Finalize();
+return 0;
+}
+
+execution 
+1.mpicc -fopenmp filename.c -o filename.out
+2.mpirun -np 5 ./filename.out
+
+2 sum of first 5 digits
+#include <stdio.h>
+
+#include<stdio.h>
+#include "mpi.h"
+#include<omp.h>
+int main(int argc,char ** argv){
+    int number[5] = {1,2,3,4,5};
+    int local_sum = 0,total_sum = 0;
+    int rank,size;
+    MPI_Init(&argc,&argv);
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+    MPI_Comm_size(MPI_COMM_WORLD,&size);
+    if(rank<5){
+        local_sum = number[rank];
+        printf("the rank of process %d and local sum is %d\n",rank,local_sum);
+    }
+    MPI_Reduce(&local_sum,&total_sum,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+//which value each process give,to ehich it stored,no of elemnt given by each process,datatype,which OPERATION ,main process,...
+    //printf("Printing sum by main process..\n");
+    if(rank==0){
+        printf("Printing sum by main process..\n");
+        printf("total sum is: %d\n",total_sum);
+    }
+    MPI_Finalize();
+    return 0;
+}
